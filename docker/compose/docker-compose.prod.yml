@@ -1,0 +1,134 @@
+# docker/compose/docker-compose.prod.yml
+version: '3.8'
+
+services:
+  
+  # 1. Nginx (Reverse Proxy)
+  nginx:
+    image: nginx:1.25
+    container_name: lu_nginx_prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../../docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      # Вольюми для SSL сертифікатів (для тестування)
+      - ../../docker/nginx/ssl:/etc/nginx/ssl
+      # Вольюми для Certbot (для production)
+      # - certbot_certs:/etc/letsencrypt
+      # - certbot_webroot:/var/www/certbot
+      # Вольюми для статики
+      - static_volume:/usr/src/app/staticfiles
+      - media_volume:/usr/src/app/mediafiles
+    depends_on:
+      - backend
+      - frontend
+    deploy:
+      mode: replicated
+      replicas: 1
+
+  # 2. Backend (Django + Daphne)
+  backend:
+    build:
+      context: ../..
+      dockerfile: docker/django/Dockerfile
+    image: lu_project_backend:latest # Даємо образу ім'я
+    command: daphne -b 0.0.0.0 -p 8000 backend_project.asgi:application
+    volumes:
+      - static_volume:/usr/src/app/staticfiles
+      - media_volume:/usr/src/app/mediafiles
+    env_file:
+      - ../../backend/.env.prod
+    depends_on:
+      - db
+      - redis
+    deploy:
+      mode: replicated
+      replicas: 2 # (Пункт 5) Балансування на 2 сервери
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+
+  # 3. Frontend (React + Nginx)
+  frontend:
+    build:
+      context: ../..
+      dockerfile: docker/react/Dockerfile
+    image: lu_project_frontend:latest
+    deploy:
+      mode: replicated
+      replicas: 1
+
+  # 4. База даних
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    env_file:
+      - ../../backend/.env.prod
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager] # БД має бути лише одна
+
+  # 5. Redis
+  redis:
+    image: redis:7
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+
+  # 6. Celery Worker (з масштабуванням)
+  celery_worker:
+    image: lu_project_backend:latest # Використовуємо той самий образ
+    command: celery -A backend_project worker -l info --concurrency=1
+    volumes:
+      - media_volume:/usr/src/app/mediafiles # Потрібен доступ до файлів
+    env_file:
+      - ../../backend/.env.prod
+    depends_on:
+      - redis
+      - db
+    deploy:
+      mode: replicated
+      replicas: 2 # (Пункт 5) Початкова кількість
+      # (Пункт 7) Автомасштабування буде керувати цим
+      # Ми обмежимо його в сервісі 'autoscaler'
+      restart_policy:
+        condition: on-failure
+
+  # 7. Autoscaler (Пункт 7: Горизонтальне розширення)
+  autoscaler:
+    build:
+      context: ../../docker/autoscaler # Нова директорія
+    image: lu_project_autoscaler:latest
+    volumes:
+      # Монтуємо сокет Docker, щоб сервіс міг керувати іншими сервісами
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CELERY_QUEUE_NAME=celery # Назва черги за замовчуванням
+      - SERVICE_TO_SCALE=lu-stack_celery_worker # Назва сервісу (має бути 'назва-стеку_celery_worker')
+      - MIN_REPLICAS=1
+      - MAX_REPLICAS=10 # (Пункт 7) Максимальна кількість обмежена
+      - TASKS_PER_WORKER=5 # Скільки задач має бути в черзі, щоб запустити +1 воркер
+    depends_on:
+      - redis
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager] # Має працювати на менеджері
+
+volumes:
+  postgres_data_prod:
+  static_volume:
+  media_volume:
+  # certbot_certs:
+  # certbot_webroot:
