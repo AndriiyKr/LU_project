@@ -1,3 +1,4 @@
+// frontend/src/pages/NotFound.jsx
 import React from 'react';
 import { Alert, Container } from 'react-bootstrap';
 import { Link } from 'react-router-dom';

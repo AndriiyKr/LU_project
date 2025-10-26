@@ -1,3 +1,4 @@
+// frontend/src/pages/Dashboard.jsx
 import React, { useState, useEffect } from 'react';
 import { } from 'react-router-dom';
 import api from '../api/axiosConfig';
@@ -16,7 +17,7 @@ const Dashboard = () => {
       try {
         setLoading(true);
         setError('');
-        const response = await api.get('/tasks/');
+        const response = await api.get('/tasks/'); // GET /api/tasks/
         setTasks(response.data);
       } catch (err) {
         setError('Не вдалося завантажити список задач.');

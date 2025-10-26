@@ -1,3 +1,4 @@
+// frontend/src/pages/Register.jsx
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
@@ -24,7 +25,7 @@ const Register = () => {
     const result = await registerUser(username, email, password, password2);
     
     if (result.success) {
-      navigate('/'); 
+      navigate('/'); // Успішна реєстрація та логін
     } else {
       setError(result.error);
     }

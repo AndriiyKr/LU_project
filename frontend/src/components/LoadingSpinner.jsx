@@ -1,3 +1,4 @@
+// frontend/src/components/LoadingSpinner.jsx
 import React from 'react';
 import { Spinner } from 'react-bootstrap';
 
