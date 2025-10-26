@@ -1,15 +1,33 @@
+# backend/requirements.txt
+
+# Django & Web Server
 Django>=4.2,<5.0
 djangorestframework
 django-cors-headers
 gunicorn
+
+# Async & WebSockets (для прогресу в реальному часі)
 daphne
 channels>=4.0
 channels-redis
+
+# Задачі та черги (Celery)
 celery
 redis
+
+# База даних
 psycopg2-binary
+
+# Автентифікація
 djangorestframework-simplejwt
+
+# Обчислення
 numpy
+
+# Моніторинг
 psutil
+
+# Змінні середовища
 python-dotenv
+
 watchdog

@@ -1,4 +1,9 @@
+# docker/compose/docker-compose.yml
+# Повністю виправлена версія без container_name для масштабованих сервісів
+
 services:
+
+  # 1. Nginx (Reverse Proxy + HTTPS)
   nginx:
     image: nginx:1.25
     ports:
@@ -17,6 +22,7 @@ services:
       replicas: 1
     restart: unless-stopped
 
+  # 2. Backend (Django + Daphne)
   backend:
     build:
       context: ../..
@@ -38,8 +44,9 @@ services:
       - redis
     deploy:
       mode: replicated
-      replicas: 2 
+      replicas: 2  # балансування
 
+  # 3. Frontend (React)
   frontend:
     build:
       context: ../..
@@ -52,6 +59,8 @@ services:
       mode: replicated
       replicas: 1
     
+
+  # 4. PostgreSQL
   db:
     image: postgres:15-alpine
     container_name: lu_db_dev
@@ -64,12 +73,14 @@ services:
     environment:
       - POSTGRES_HOST_AUTH_METHOD=trust
 
+  # 5. Redis
   redis:
     image: redis:7-alpine
     container_name: lu_redis_dev
     ports:
       - "6379:6379"
 
+  # 6. Celery Worker
   celery_worker:
     build:
       context: ../..
@@ -91,6 +102,7 @@ services:
       mode: replicated
       replicas: 1
 
+  # 7. Autoscaler
   autoscaler:
     build:
       context: ../../docker/autoscaler
