@@ -1,23 +1,19 @@
-# docker/autoscaler/autoscaler.py
-
 import os
 import time
 import redis
 import docker
 from docker.errors import DockerException
 
-# --- Налаштування з .env ---
 REDIS_HOST = os.environ.get('REDIS_HOST', 'redis')
 REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
 CELERY_QUEUE_NAME = os.environ.get('CELERY_QUEUE_NAME', 'celery')
-SERVICE_TO_SCALE = os.environ.get('SERVICE_TO_SCALE') # Напр. 'lu-stack_celery_worker'
+SERVICE_TO_SCALE = os.environ.get('SERVICE_TO_SCALE')
 MIN_REPLICAS = int(os.environ.get('MIN_REPLICAS', 1))
 MAX_REPLICAS = int(os.environ.get('MAX_REPLICAS', 10))
 TASKS_PER_WORKER = int(os.environ.get('TASKS_PER_WORKER', 5))
-SLEEP_TIME = int(os.environ.get('SLEEP_TIME', 15)) # Перевіряти кожні 15 сек
+SLEEP_TIME = int(os.environ.get('SLEEP_TIME', 15))
 
 def get_queue_length(r):
-    """Отримує довжину черги Celery."""
     try:
         return r.llen(CELERY_QUEUE_NAME)
     except Exception as e:
@@ -25,7 +21,6 @@ def get_queue_length(r):
         return None
 
 def get_current_replicas(client, service_name):
-    """Отримує поточну кількість реплік сервісу."""
     try:
         service = client.services.get(service_name)
         replicas = service.attrs['Spec']['Mode']['Replicated']['Replicas']
@@ -88,21 +83,14 @@ def main():
         if current_replicas is None:
             time.sleep(SLEEP_TIME)
             continue
-
-        # --- Логіка масштабування ---
-        # 1. Розраховуємо, скільки воркерів нам ПОТРІБНО
-        # (додаємо +1, якщо є хоча б 1 задача, щоб почати обробку)
         if queue_len == 0:
             desired_replicas = MIN_REPLICAS
         else:
             desired_replicas = (queue_len // TASKS_PER_WORKER) + 1
-            
-        # 2. Обмежуємо лімітами
+
         new_replicas = max(MIN_REPLICAS, min(desired_replicas, MAX_REPLICAS))
 
         print(f"Черга: {queue_len} задач. Поточні воркери: {current_replicas}. Бажані: {new_replicas}.")
-
-        # 3. Якщо кількість не збігається - масштабуємо
         if new_replicas != current_replicas:
             scale_service(docker_client, SERVICE_TO_SCALE, new_replicas)
         

@@ -1,5 +1,3 @@
-# backend/backend_project/asgi.py
-
 import os
 import django
 from django.core.asgi import get_asgi_application
@@ -8,15 +6,11 @@ from channels.auth import AuthMiddlewareStack
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend_project.settings')
 django.setup()
 import apps.tasks_app.routing  
-# Отримуємо стандартний Django ASGI application
 django_asgi_app = get_asgi_application()
 
 application = ProtocolTypeRouter({
-    # Для звичайних HTTP-запитів
     "http": django_asgi_app,
-
-    # Для WebSocket-запитів
-    "websocket": AuthMiddlewareStack(  # Додаємо аутентифікацію
+    "websocket": AuthMiddlewareStack(
         URLRouter(
             apps.tasks_app.routing.websocket_urlpatterns
         )
