@@ -1,4 +1,3 @@
-// frontend/src/components/TaskStatusBadge.jsx
 import React from 'react';
 import { Badge } from 'react-bootstrap';
 

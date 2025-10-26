@@ -1,6 +1,5 @@
-// frontend/src/contexts/AuthContext.jsx
 import React, { createContext, useState, useEffect } from 'react';
-import { jwtDecode } from 'jwt-decode'; // Зверніть увагу на імпорт
+import { jwtDecode } from 'jwt-decode'; 
 import api from '../api/axiosConfig';
 
 const AuthContext = createContext();
@@ -42,14 +41,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const registerUser = async (username, email, password, password2) => {
-     try {
+    try {
       await api.post('/users/register/', {
         username,
         email,
         password,
         password2,
       });
-      // Автоматично логінимо користувача після реєстрації
       return await loginUser(username, password);
     } catch (error) {
       console.error("Register error", error);
@@ -58,11 +56,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Ефект для оновлення токену (виконується при завантаженні)
   useEffect(() => {
-    // Ми не будемо тут оновлювати токен, 
-    // це зробить `axiosConfig` при першому запиті.
-    // Тут ми просто прибираємо завантаження.
     setLoading(false); 
   }, [authTokens]);
 

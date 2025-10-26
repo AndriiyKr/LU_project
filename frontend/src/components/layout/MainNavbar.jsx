@@ -1,4 +1,3 @@
-// frontend/src/components/layout/MainNavbar.jsx
 import React from 'react';
 import { Navbar, Nav, Container, Button } from 'react-bootstrap';
 import { LinkContainer } from 'react-router-bootstrap';
@@ -24,7 +23,6 @@ const MainNavbar = () => {
                 <LinkContainer to="/create-task">
                   <Nav.Link>Створити Задачу</Nav.Link>
                 </LinkContainer>
-                {/* (Пункт 8) */}
                 {user.is_staff && ( 
                   <LinkContainer to="/admin">
                     <Nav.Link className="text-warning">Адмін-Панель</Nav.Link>
